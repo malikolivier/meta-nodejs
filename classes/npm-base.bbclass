@@ -1,7 +1,7 @@
 DEPENDS += " node-native"
 
 inherit nodejs-arch
-
+	
 PACKAGE_DEBUG_SPLIT_STYLE = "debug-file-directory"
 
 CCACHE = ""
@@ -18,6 +18,11 @@ NPM_LD ?= "${CXX}"
 NPM_FLAGS ?= ""
 
 NPM_FLAGS_append_class-nativesdk = " --unsafe-perm"
+
+
+def npm_get_version():
+    import os
+    return os.popen("npm --v").read().split('.')
 
 # Target npm
 
@@ -39,10 +44,13 @@ oe_runnpm() {
 	echo "/.*/" >> "${NPM_IGNORE}"
 
 	mkdir -p "${NPM_HOME_DIR}"
-
+	
+	export NPM_VERSION="$(${NPM} --v)"
+	export NPM_CACHE_CMD="clean"
 	export NPM_CONFIG_CACHE="${NPM_CACHE_DIR}"
 	export NPM_CONFIG_DEV="false"
 
+	bbnote NPM version: $NPM_VERSION
 	bbnote NPM target architecture: ${NPM_ARCH}
 	bbnote NPM home directory: ${NPM_HOME_DIR}
 	bbnote NPM cache directory: ${NPM_CONFIG_CACHE}
@@ -51,15 +59,19 @@ oe_runnpm() {
 
 	bbnote ${NPM} --registry=${NPM_REGISTRY} ${ARCH_FLAGS} ${NPM_FLAGS} "$@"
 
-	export JOBS=${@oe.utils.cpu_count()}
-
+	export JOBS="${@oe.utils.cpu_count()}"
+	
 	export http_proxy="${http_proxy}"
 	export https_proxy="${https_proxy}"
 	export no_proxy="${no_proxy}"
 
 	export HOME="${NPM_HOME_DIR}"
 
-	${NPM} cache clean || die "oe_runnpm failed (cache clean)"
+	if [ "${@npm_get_version()[0]}" = "5" ]; then
+		NPM_CACHE_CMD="verify"
+	fi
+
+	${NPM} cache $NPM_CACHE_CMD || die "oe_runnpm failed (cache $NPM_CACHE_CMD)"
 
 	LD="${NPM_LD}" ${NPM} --registry=${NPM_REGISTRY} ${ARCH_FLAGS} ${NPM_FLAGS} "$@" || die "oe_runnpm failed (install)"
 
@@ -95,14 +107,18 @@ oe_runnpm_native() {
 
 	mkdir -p "${NPM_HOME_DIR_NATIVE}"
 
+	export NPM_VERSION="$(${NPM} --v)"
+	export NPM_CACHE_CMD="clean"
 	export NPM_CONFIG_CACHE="${NPM_CACHE_DIR_NATIVE}"
 	export NPM_CONFIG_DEV="false"
 
+	bbnote NPM version: $NPM_VERSION
 	bbnote NPM native architecture: ${NPM_ARCH_NATIVE}
 	bbnote NPM home directory: ${NPM_HOME_DIR_NATIVE}
 	bbnote NPM cache directory: ${NPM_CONFIG_CACHE}
 	bbnote NPM registry: ${NPM_REGISTRY}
 	bbnote NPM workdir .npmignore: ${NPM_IGNORE}
+
 
 	bbnote ${NPM_NATIVE} --registry=${NPM_REGISTRY} ${ARCH_FLAGS} ${NPM_FLAGS_NATIVE} "$@"
 
@@ -114,7 +130,11 @@ oe_runnpm_native() {
 
 	export HOME="${NPM_HOME_DIR_NATIVE}"
 
-	${NPM} cache clean || die "oe_runnpm_native failed (cache clean)"
+	if [ "${@npm_get_version()[0]}" = "5" ]; then
+		NPM_CACHE_CMD="verify"
+	fi
+
+	${NPM_NATIVE} cache $NPM_CACHE_CMD || die "oe_runnpm_native failed (cache clean)"
 
 	LD="${NPM_LD_NATIVE}" ${NPM_NATIVE} --registry=${NPM_REGISTRY} ${ARCH_FLAGS} ${NPM_FLAGS_NATIVE} "$@" || die "oe_runnpm_native failed (install)"
 

@@ -65,33 +65,4 @@ do_install () {
   oe_runmake install DESTDIR="${D}"
 }
 
-do_install_append_class-native() {
-  # make sure we use node from PATH instead of absolute path to sysroot
-  sed "1s^.*^#\!/usr/bin/env node^g" -i ${D}${exec_prefix}/lib/node_modules/npm/bin/npm-cli.js
-}
-
-do_install_append_class-nativesdk() {
-  # make sure we use node from PATH instead of absolute path to sysroot
-  sed "1s^.*^#\!/usr/bin/env node^g" -i ${D}${exec_prefix}/lib/node_modules/npm/bin/npm-cli.js
-  sed "1s^.*^#\!/usr/bin/env python^g" -i ${D}${exec_prefix}/lib/node_modules/npm/node_modules/node-gyp/gyp/samples/samples
-}
-
-do_install_append_class-target() {
-  # make sure we use node from PATH instead of absolute path to sysroot
-  sed "1s^.*^#\!${bindir}/env node^g" -i ${D}${exec_prefix}/lib/node_modules/npm/bin/npm-cli.js
-}
-
-PACKAGES =+ "${PN}-npm"
-FILES_${PN}-npm = "${exec_prefix}/lib/node_modules ${bindir}/npm"
-RDEPENDS_${PN}-npm = "bash python-compiler python-shell python-datetime python-subprocess python-multiprocessing python-crypt python-textutils python-netclient python-misc"
-
-PACKAGES =+ "${PN}-dtrace"
-FILES_${PN}-dtrace = "${exec_prefix}/lib/dtrace"
-
-PACKAGES =+ "${PN}-systemtap"
-FILES_${PN}-systemtap = "${datadir}/systemtap"
-
-INSANE_SKIP_${PN} += "file-rdeps"
-INSANE_SKIP_${PN}-dbg += "host-user-contaminated"
-
 BBCLASSEXTEND = "native nativesdk"
